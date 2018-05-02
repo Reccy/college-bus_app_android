@@ -10,8 +10,10 @@ import com.pubnub.api.models.consumer.PNStatus;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 import com.pubnub.api.models.consumer.pubsub.PNPresenceEventResult;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Wrapper for the PubNub API with methods that make sense in the context of Bus Stop.
@@ -23,6 +25,17 @@ class BusStopAPI {
         return ourInstance;
     }
 
+    public interface BusStopAPIInitializedListener {
+        void onBusStopAPIInitialized();
+    }
+    private List<BusStopAPIInitializedListener> initListeners;
+
+    public interface BusStopAPIMessageReceivedListener {
+        void onBusStopAPIMessageReceived(PNMessageResult messageResult);
+    }
+    private List<BusStopAPIMessageReceivedListener> msgListeners;
+
+
     public final String PUBNUB_CHANNEL = "bus_stop";
     private boolean initialized = false;
     private PubNub pubnub = null;
@@ -32,6 +45,19 @@ class BusStopAPI {
      */
     public boolean isInitialized() {
         return initialized;
+    }
+
+    public BusStopAPI() {
+        initListeners = new ArrayList<>();
+        msgListeners = new ArrayList<>();
+    }
+
+    public void addOnInitializedListener(BusStopAPIInitializedListener listener) {
+        initListeners.add(listener);
+    }
+
+    public void addOnMessageReceivedListener(BusStopAPIMessageReceivedListener listener) {
+        msgListeners.add(listener);
     }
 
     /**
@@ -58,6 +84,10 @@ class BusStopAPI {
                                 if (!status.isError()) {
                                     System.out.println("[PubNub] Successfully initialized PubNub!");
                                     initialized = true;
+
+                                    for (BusStopAPIInitializedListener listener : initListeners) {
+                                        listener.onBusStopAPIInitialized();
+                                    }
                                 }
                             }
                         });
@@ -75,13 +105,15 @@ class BusStopAPI {
             public void message(PubNub pubnub, PNMessageResult message) {
                 if (message.getChannel() != null) {
                     System.out.println("[PubNub] Message Callback: " + message.getMessage());
+
+                    for (BusStopAPIMessageReceivedListener listener : msgListeners) {
+                        listener.onBusStopAPIMessageReceived(message);
+                    }
                 }
             }
 
             @Override
-            public void presence(PubNub pubnub, PNPresenceEventResult presence) {
-
-            }
+            public void presence(PubNub pubnub, PNPresenceEventResult presence) {}
         });
 
         pubnub.subscribe()
