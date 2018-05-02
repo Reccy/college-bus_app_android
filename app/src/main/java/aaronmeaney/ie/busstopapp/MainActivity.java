@@ -6,7 +6,16 @@ import android.os.Bundle;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
+
+import org.json.JSONObject;
+
+import java.util.HashMap;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -23,20 +32,89 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    /*
+     * Google Maps Attributes
+     */
+
+    private HashMap<String, Marker> busMarkers;
+
     /**
      * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        busMarkers = new HashMap<>();
+
         BusStopAPI busStopAPI = BusStopAPI.getInstance();
+
+        busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
+            @Override
+            public void onBusStopAPIMessageReceived(PNMessageResult messageResult) {
+                handleReceivedMessage(messageResult.getMessage().getAsJsonObject());
+            }
+        });
+
         busStopAPI.initialize();
+    }
+
+    /**
+     * Handles the bus data received from the API
+     */
+    private void HandleBusData(JsonObject message) {
+        final String busName = message.get("bus_name").getAsString();
+        final double latitude = message.get("latitude").getAsDouble();
+        final double longitude = message.get("longitude").getAsDouble();
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                LatLng position = new LatLng(latitude, longitude);
+
+                if (busMarkers.containsKey(busName)) {
+                    busMarkers.get(busName).setPosition(position);
+                } else {
+                    Marker newMarker = mMap.addMarker(new MarkerOptions()
+                            .position(position)
+                            .title(busName));
+
+                    busMarkers.put(busName, newMarker);
+                }
+            }
+        });
+    }
+
+    /**
+     * Handles the end of a bus service message
+     */
+    private void HandleBusEndService(JsonObject message) {
+        final String busName = message.get("bus_name").getAsString();
+
+        System.out.println("Bus " + busName + " ended its service.");
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (busMarkers.containsKey(busName)) {
+                    System.out.println("Removing marker...");
+                    
+                    busMarkers.get(busName).remove();
+                    busMarkers.remove(busName);
+                }
+            }
+        });
+    }
+
+    private void handleReceivedMessage(JsonObject message) {
+        switch (message.get("topic").getAsString()) {
+            case "bus_data":
+                HandleBusData(message);
+                break;
+            case "bus_end_service":
+                HandleBusEndService(message);
+                break;
+        }
     }
 }
