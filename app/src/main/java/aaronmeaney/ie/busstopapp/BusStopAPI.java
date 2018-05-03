@@ -1,5 +1,9 @@
 package aaronmeaney.ie.busstopapp;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.pubnub.api.PNConfiguration;
 import com.pubnub.api.PubNub;
 import com.pubnub.api.callbacks.PNCallback;
@@ -10,10 +14,18 @@ import com.pubnub.api.models.consumer.PNStatus;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 import com.pubnub.api.models.consumer.pubsub.PNPresenceEventResult;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * Wrapper for the PubNub API with methods that make sense in the context of Bus Stop.
@@ -35,10 +47,16 @@ class BusStopAPI {
     }
     private List<BusStopAPIMessageReceivedListener> msgListeners;
 
+    public interface BusStopAPIReceivedBusStopsListener {
+        void onBusStopAPIReceivedBusStops(JsonArray busStops);
+    }
+    private List<BusStopAPIReceivedBusStopsListener> busStopsListeners;
 
     public final String PUBNUB_CHANNEL = "bus_stop";
+    public final String API_BASE_URL = "https://bus-stop-api.herokuapp.com/";
     private boolean initialized = false;
     private PubNub pubnub = null;
+    private OkHttpClient okHttpClient = null;
 
     /**
      * Returns if the API is initialized and is ready to be used.
@@ -50,6 +68,7 @@ class BusStopAPI {
     public BusStopAPI() {
         initListeners = new ArrayList<>();
         msgListeners = new ArrayList<>();
+        busStopsListeners = new ArrayList<>();
     }
 
     public void addOnInitializedListener(BusStopAPIInitializedListener listener) {
@@ -60,10 +79,19 @@ class BusStopAPI {
         msgListeners.add(listener);
     }
 
+    public void addOnReceivedBusStops(BusStopAPIReceivedBusStopsListener listener) {
+        busStopsListeners.add(listener);
+    }
+
     /**
-     * Initializes the PubNub API.
+     * Initializes the PubNub API and OkHTTPClient.
      */
     public void initialize() {
+        OkHttpClient.Builder b = new OkHttpClient.Builder();
+        b.readTimeout(60, TimeUnit.SECONDS);
+        b.writeTimeout(60, TimeUnit.SECONDS);
+        okHttpClient = b.build();
+
         PNConfiguration pnConfiguration = new PNConfiguration();
         pnConfiguration.setSubscribeKey("sub-c-136ca9c4-4d58-11e8-9987-d26dac8959c0");
         pnConfiguration.setPublishKey("pub-c-c6e95d6d-cdba-4d5c-8c5d-29064d99fd0e");
@@ -181,5 +209,34 @@ class BusStopAPI {
                 .channel(PUBNUB_CHANNEL)
                 .message(payload)
                 .async(callback);
+    }
+
+    /**
+     * Returns the Bus Stops configured on the Bus Stop API.
+     */
+    public void getBusStops() {
+        String url = API_BASE_URL + "bus_stops";
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println("[Bus Stop API] Get Bus Stops error: " + e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                JsonArray busStopsJson = new JsonParser().parse(response.body().string()).getAsJsonArray();
+
+                System.out.println("[Bus Stop API] Bus Stops: " + busStopsJson.toString());
+
+                for (BusStopAPIReceivedBusStopsListener listener : busStopsListeners) {
+                    listener.onBusStopAPIReceivedBusStops(busStopsJson);
+                }
+            }
+        });
     }
 }

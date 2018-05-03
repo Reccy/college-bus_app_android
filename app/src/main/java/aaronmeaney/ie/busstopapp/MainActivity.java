@@ -3,18 +3,20 @@ package aaronmeaney.ie.busstopapp;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
-import org.json.JSONObject;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -37,6 +39,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
      */
 
     private HashMap<String, Marker> busMarkers;
+    private HashMap<JsonElement, Marker> busStopMarkers;
 
     /**
      * Manipulates the map once available.
@@ -45,9 +48,29 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        busMarkers = new HashMap<>();
+        // Setup Google Map listeners
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
+                mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
-        BusStopAPI busStopAPI = BusStopAPI.getInstance();
+                return true;
+            }
+        });
+
+        // Setup BusStopAPI
+        busMarkers = new HashMap<>();
+        busStopMarkers = new HashMap<>();
+
+        final BusStopAPI busStopAPI = BusStopAPI.getInstance();
+
+        busStopAPI.addOnInitializedListener(new BusStopAPI.BusStopAPIInitializedListener() {
+            @Override
+            public void onBusStopAPIInitialized() {
+                busStopAPI.getBusStops();
+            }
+        });
 
         busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
             @Override
@@ -56,13 +79,49 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        busStopAPI.addOnReceivedBusStops(new BusStopAPI.BusStopAPIReceivedBusStopsListener() {
+            @Override
+            public void onBusStopAPIReceivedBusStops(JsonArray busStops) {
+                handleBusStopData(busStops);
+            }
+        });
+
         busStopAPI.initialize();
+    }
+
+    /**
+     * Handles the bus stop data received from the API
+     */
+    private void handleBusStopData(JsonArray busStops) {
+
+        for (final Marker busStopMarker : busStopMarkers.values()) {
+            busStopMarker.remove();
+        }
+        busStopMarkers.clear();
+
+        for (final JsonElement busStop : busStops) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    String id = busStop.getAsJsonObject().get("id").getAsString();
+                    String internalId = busStop.getAsJsonObject().get("internal_id").getAsString();
+                    double latitude = busStop.getAsJsonObject().get("latitude").getAsDouble();
+                    double longitude = busStop.getAsJsonObject().get("longitude").getAsDouble();
+
+                    Marker newMarker = mMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(latitude, longitude))
+                            .title(id));
+
+                    busStopMarkers.put(busStop, newMarker);
+                }
+            });
+        }
     }
 
     /**
      * Handles the bus data received from the API
      */
-    private void HandleBusData(JsonObject message) {
+    private void handleBusData(JsonObject message) {
         final String busName = message.get("bus_name").getAsString();
         final double latitude = message.get("latitude").getAsDouble();
         final double longitude = message.get("longitude").getAsDouble();
@@ -89,7 +148,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Handles the end of a bus service message
      */
-    private void HandleBusEndService(JsonObject message) {
+    private void handleBusEndService(JsonObject message) {
         final String busName = message.get("bus_name").getAsString();
 
         System.out.println("Bus " + busName + " ended its service.");
@@ -99,7 +158,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void run() {
                 if (busMarkers.containsKey(busName)) {
                     System.out.println("Removing marker...");
-                    
+
                     busMarkers.get(busName).remove();
                     busMarkers.remove(busName);
                 }
@@ -110,10 +169,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private void handleReceivedMessage(JsonObject message) {
         switch (message.get("topic").getAsString()) {
             case "bus_data":
-                HandleBusData(message);
+                handleBusData(message);
                 break;
             case "bus_end_service":
-                HandleBusEndService(message);
+                handleBusEndService(message);
                 break;
         }
     }
