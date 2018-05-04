@@ -2,8 +2,13 @@ package aaronmeaney.ie.busstopapp;
 
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -18,21 +23,66 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+
+import butterknife.BindView;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
 
+    @BindView(R.id.bus_bottom_sheet)
+    public LinearLayout layoutBottomSheet;
+
+    @BindView(R.id.bus_bottom_sheet_close_button)
+    public Button btnCloseButtomSheet;
+
+    private BottomSheetBehavior sheetBehavior;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        butterknife.ButterKnife.bind(this);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        // Setup bottom sheet
+        sheetBehavior = BottomSheetBehavior.from(layoutBottomSheet);
+
+        btnCloseButtomSheet.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sheetBehavior.setHideable(true);
+                sheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            }
+        });
+
+        sheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehavior.STATE_HIDDEN:
+                        break;
+                    case BottomSheetBehavior.STATE_EXPANDED:
+                        break;
+                    case BottomSheetBehavior.STATE_COLLAPSED:
+                        break;
+                    case BottomSheetBehavior.STATE_DRAGGING:
+                        break;
+                    case BottomSheetBehavior.STATE_SETTLING:
+                        break;
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
     }
 
 
@@ -41,7 +91,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
      */
 
     private HashMap<String, Marker> busMarkers;
+    private HashMap<String, Double> busTimestamps;
     private HashMap<JsonElement, Marker> busStopMarkers;
+    private HashMap<JsonElement, Double> busStopTimestamps;
 
     /**
      * Manipulates the map once available.
@@ -57,13 +109,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
                 mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
+                sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                sheetBehavior.setHideable(false);
+
                 return true;
             }
         });
 
         // Setup BusStopAPI
         busMarkers = new HashMap<>();
+        busTimestamps = new HashMap<>();
         busStopMarkers = new HashMap<>();
+        busStopTimestamps = new HashMap<>();
 
         final BusStopAPI busStopAPI = BusStopAPI.getInstance();
 
@@ -73,6 +130,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 busStopAPI.getBusStops();
             }
         });
+
+        /// DEBUG MARKER REMOVE WHEN PUB NUB GOES BACK ONLINE
+        Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_marker)).getBitmap();
+        bitmap = Bitmap.createScaledBitmap(bitmap, 250, 250, false);
+
+        Marker newMarker = mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(53.347753, -6.242407))
+                .title("Debug Bus")
+                .zIndex(2f)
+                .icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
+        /// END OF DEBUG MARKER CODE
 
         busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
             @Override
@@ -131,6 +199,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String busName = message.get("bus_name").getAsString();
         final double latitude = message.get("latitude").getAsDouble();
         final double longitude = message.get("longitude").getAsDouble();
+        final double sent_at = message.get("sent_at").getAsDouble();
 
         runOnUiThread(new Runnable() {
             @Override
@@ -138,6 +207,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 LatLng position = new LatLng(latitude, longitude);
 
+                // Prevent bus data from being updated out of order
+                if (busTimestamps.containsKey(busName)) {
+                    if (sent_at < busTimestamps.get(busName)) {
+                        return;
+                    }
+                }
+                busTimestamps.put(busName, sent_at);
+
+                // Set marker
                 if (busMarkers.containsKey(busName)) {
                     busMarkers.get(busName).setPosition(position);
                 } else {
