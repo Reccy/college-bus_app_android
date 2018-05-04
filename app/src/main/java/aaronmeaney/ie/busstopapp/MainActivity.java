@@ -6,10 +6,15 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -23,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import butterknife.BindView;
@@ -36,6 +42,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     @BindView(R.id.bus_bottom_sheet_close_button)
     public Button btnCloseButtomSheet;
+
+    @BindView(R.id.shadow)
+    public View layoutBottomSheetShadow;
+
+    @BindView(R.id.bus_bottom_sheet_list)
+    public ListView layoutBottomSheetListView;
 
     private BottomSheetBehavior sheetBehavior;
 
@@ -58,6 +70,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
                 sheetBehavior.setHideable(true);
                 sheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                layoutBottomSheetShadow.setVisibility(View.GONE);
             }
         });
 
@@ -79,8 +92,62 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
+        });
 
+        sheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        layoutBottomSheetShadow.setVisibility(View.GONE);
+
+        // Setup Bottom Sheet List
+        final ArrayList<String> testList = new ArrayList<String>() {{
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+            add("Test String");
+        }};
+
+        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, testList.toArray());
+        layoutBottomSheetListView.setAdapter(adapter);
+
+        // Fix to prevent ListView and BottomSheet from interfering with touch events
+        // Source: https://stackoverflow.com/a/46128956
+        layoutBottomSheetListView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Disallow NestedScrollView to intercept touch events.
+                        v.getParent().requestDisallowInterceptTouchEvent(true);
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        // Allow NestedScrollView to intercept touch events.
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+
+                // Handle ListView touch events.
+                v.onTouchEvent(event);
+                return true;
             }
         });
     }
@@ -102,6 +169,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(53.410562, -6.227770), 10));
+
         // Setup Google Map listeners
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -109,8 +178,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
                 mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
+                final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
+                int pixels = (int) (50 * scale + 0.5f);
+                sheetBehavior.setPeekHeight(pixels);
                 sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 sheetBehavior.setHideable(false);
+                layoutBottomSheetShadow.setVisibility(View.VISIBLE);
 
                 return true;
             }
@@ -179,7 +252,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     double longitude = busStop.getAsJsonObject().get("longitude").getAsDouble();
 
                     Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_stop_marker)).getBitmap();
-                    bitmap = Bitmap.createScaledBitmap(bitmap, 200, 200, false);
+                    bitmap = Bitmap.createScaledBitmap(bitmap, 150, 150, false);
 
                     Marker newMarker = mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(latitude, longitude))
