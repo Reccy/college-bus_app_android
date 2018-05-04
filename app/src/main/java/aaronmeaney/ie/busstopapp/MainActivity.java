@@ -13,6 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -49,6 +50,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @BindView(R.id.bus_bottom_sheet_list)
     public ListView layoutBottomSheetListView;
 
+    @BindView(R.id.bus_bottom_title)
+    public TextView busBottomTitle;
+
     private BottomSheetBehavior sheetBehavior;
 
     @Override
@@ -64,6 +68,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Setup bottom sheet
         sheetBehavior = BottomSheetBehavior.from(layoutBottomSheet);
+
+        busBottomTitle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                    sheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+
+                if (sheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+                    sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            }
+        });
 
         btnCloseButtomSheet.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -169,6 +186,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        // Set the map position over Dublin
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(53.410562, -6.227770), 10));
 
         // Setup Google Map listeners
@@ -179,7 +197,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
                 final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
-                int pixels = (int) (50 * scale + 0.5f);
+                int pixels = (int) (80 * scale + 0.5f);
                 sheetBehavior.setPeekHeight(pixels);
                 sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 sheetBehavior.setHideable(false);

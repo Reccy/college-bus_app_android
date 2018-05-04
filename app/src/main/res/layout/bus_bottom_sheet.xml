@@ -7,48 +7,61 @@
     android:background="#fff"
     android:orientation="vertical"
 
-    android:padding="10sp"
     app:behavior_hideable="false"
     app:behavior_peekHeight="0dp"
     app:behavior_skipCollapsed="true"
     app:layout_behavior="android.support.design.widget.BottomSheetBehavior">
 
-    <RelativeLayout
+    <!-- Header Section -->
+    <LinearLayout
+        android:padding="10dp"
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="10dp">
+        android:layout_height="wrap_content">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="5dp">
+
+            <TextView
+                android:id="@+id/bus_bottom_title"
+                android:layout_centerVertical="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="25dp"
+                android:text="Swords Express - 500X"/>
+
+            <Button
+                android:id="@+id/bus_bottom_sheet_close_button"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_centerVertical="true"
+                android:layout_alignParentEnd="true"
+                android:textSize="23dp"
+                android:background="@mipmap/ic_close"/>
+
+        </RelativeLayout>
 
         <TextView
-            android:id="@+id/bus_bottom_sheet_company"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="25dp"
-            android:text="Swords Express - 500X"/>
+            android:layout_marginBottom="5dp"
+            android:textSize="20dp"
+            android:text="In Service"/>
 
-        <Button
-            android:id="@+id/bus_bottom_sheet_close_button"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:textSize="23dp"
-            android:background="@mipmap/ic_close"/>
+    </LinearLayout>
 
-    </RelativeLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="20dp"
-        android:text="In Service"/>
+    <!-- List Section -->
+    <View style="@style/Divider" />
 
     <ListView
         android:id="@+id/bus_bottom_sheet_list"
         android:scrollbars="vertical"
         android:layout_width="match_parent"
-        android:layout_height="200dp">
+        android:layout_height="250dp">
 
     </ListView>
 
