@@ -35,8 +35,8 @@
                                     <map>
                                       <entry key="assetType" value="IMAGE" />
                                       <entry key="iconShape" value="NONE" />
-                                      <entry key="imageAsset" value="D:\Dropbox\NCI\Semester 8\Software Project\Project Files\BusStopApp\app\src\main\res\drawable\bus_stop_icon.png" />
-                                      <entry key="outputName" value="ic_bus_stop" />
+                                      <entry key="imageAsset" value="D:\Dropbox\NCI\Semester 8\Software Project\Project Files\BusStopApp\app\src\main\res\drawable\bus_stop_marker.png" />
+                                      <entry key="outputName" value="ic_bus_stop_marker" />
                                     </map>
                                   </option>
                                 </PersistentState>

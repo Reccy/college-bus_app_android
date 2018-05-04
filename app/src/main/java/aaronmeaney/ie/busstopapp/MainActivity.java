@@ -1,5 +1,7 @@
 package aaronmeaney.ie.busstopapp;
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 
@@ -108,8 +110,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     double latitude = busStop.getAsJsonObject().get("latitude").getAsDouble();
                     double longitude = busStop.getAsJsonObject().get("longitude").getAsDouble();
 
+                    Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_stop_marker)).getBitmap();
+                    bitmap = Bitmap.createScaledBitmap(bitmap, 200, 200, false);
+
                     Marker newMarker = mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(latitude, longitude))
+                            .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
                             .title(id));
 
                     busStopMarkers.put(busStop, newMarker);
@@ -135,9 +141,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 if (busMarkers.containsKey(busName)) {
                     busMarkers.get(busName).setPosition(position);
                 } else {
+                    Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_marker)).getBitmap();
+                    bitmap = Bitmap.createScaledBitmap(bitmap, 250, 250, false);
+
                     Marker newMarker = mMap.addMarker(new MarkerOptions()
                             .position(position)
-                            .title(busName));
+                            .title(busName)
+                            .zIndex(2f)
+                            .icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
 
                     busMarkers.put(busName, newMarker);
                 }
