@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/bus_bottom_sheet"
+    android:id="@+id/bottom_sheet"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="#fff"
@@ -26,7 +26,7 @@
             android:layout_marginBottom="5dp">
 
             <TextView
-                android:id="@+id/bus_bottom_title"
+                android:id="@+id/bottom_title"
                 android:layout_centerVertical="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -35,7 +35,7 @@
                 android:text="Swords Express - 500X"/>
 
             <Button
-                android:id="@+id/bus_bottom_sheet_close_button"
+                android:id="@+id/bottom_sheet_close_btn"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_centerVertical="true"
@@ -57,12 +57,10 @@
     <!-- List Section -->
     <View style="@style/Divider" />
 
-    <ListView
-        android:id="@+id/bus_bottom_sheet_list"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/bottom_sheet_list"
         android:scrollbars="vertical"
         android:layout_width="match_parent"
-        android:layout_height="250dp">
-
-    </ListView>
+        android:layout_height="200dp" />
 
 </LinearLayout>

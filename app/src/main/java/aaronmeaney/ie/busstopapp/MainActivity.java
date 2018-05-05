@@ -6,16 +6,15 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
 
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -38,22 +37,24 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
-    @BindView(R.id.bus_bottom_sheet)
-    public LinearLayout layoutBottomSheet;
+    @BindView(R.id.bottom_sheet)
+    public LinearLayout bottomSheetLayout;
 
-    @BindView(R.id.bus_bottom_sheet_close_button)
-    public Button btnCloseButtomSheet;
+    @BindView(R.id.bottom_sheet_close_btn)
+    public Button bottomSheetCloseBtn;
 
     @BindView(R.id.shadow)
-    public View layoutBottomSheetShadow;
+    public View bottomSheetShadow;
 
-    @BindView(R.id.bus_bottom_sheet_list)
-    public ListView layoutBottomSheetListView;
+    @BindView(R.id.bottom_sheet_list)
+    public RecyclerView layoutBottomSheetList;
 
-    @BindView(R.id.bus_bottom_title)
-    public TextView busBottomTitle;
+    @BindView(R.id.bottom_title)
+    public TextView bottomTitle;
 
-    private BottomSheetBehavior sheetBehavior;
+    private BottomSheetBehavior bottomSheet;
+
+    private BusStopAdapter busStopAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,31 +68,31 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         // Setup bottom sheet
-        sheetBehavior = BottomSheetBehavior.from(layoutBottomSheet);
+        bottomSheet = BottomSheetBehavior.from(bottomSheetLayout);
 
-        busBottomTitle.setOnClickListener(new View.OnClickListener() {
+        bottomTitle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (sheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                    sheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                if (bottomSheet.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                    bottomSheet.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
 
-                if (sheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                    sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                if (bottomSheet.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+                    bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
             }
         });
 
-        btnCloseButtomSheet.setOnClickListener(new View.OnClickListener() {
+        bottomSheetCloseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sheetBehavior.setHideable(true);
-                sheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-                layoutBottomSheetShadow.setVisibility(View.GONE);
+                bottomSheet.setHideable(true);
+                bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetShadow.setVisibility(View.GONE);
             }
         });
 
-        sheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+        bottomSheet.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 switch (newState) {
@@ -112,41 +113,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
         });
 
-        sheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-        layoutBottomSheetShadow.setVisibility(View.GONE);
+        bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
+        bottomSheetShadow.setVisibility(View.GONE);
 
         // Setup Bottom Sheet List
-        final ArrayList<String> testList = new ArrayList<String>() {{
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
-            add("Test String");
+        final ArrayList<BusStop> busStops = new ArrayList<BusStop>() {{
+
+            add(new BusStop("Laurelton", "s_Laurelton", 53, -3));
+            add(new BusStop("Applewood Village", "s_Applewood Village", 53, -3));
+            add(new BusStop("Boroimhe", "s_Boroimhe", 53, -3));
+            add(new BusStop("Eden Quay", "s_Eden Quay", 53, -3));
+
         }};
 
-        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, testList.toArray());
-        layoutBottomSheetListView.setAdapter(adapter);
+        busStopAdapter = new BusStopAdapter(busStops);
+        layoutBottomSheetList.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        layoutBottomSheetList.setItemAnimator(new DefaultItemAnimator());
+        layoutBottomSheetList.setAdapter(busStopAdapter);
 
         // Fix to prevent ListView and BottomSheet from interfering with touch events
         // Source: https://stackoverflow.com/a/46128956
-        layoutBottomSheetListView.setOnTouchListener(new View.OnTouchListener() {
+        layoutBottomSheetList.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
@@ -198,10 +185,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
                 int pixels = (int) (80 * scale + 0.5f);
-                sheetBehavior.setPeekHeight(pixels);
-                sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                sheetBehavior.setHideable(false);
-                layoutBottomSheetShadow.setVisibility(View.VISIBLE);
+                bottomSheet.setPeekHeight(pixels);
+                bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                bottomSheet.setHideable(false);
+                bottomSheetShadow.setVisibility(View.VISIBLE);
 
                 return true;
             }

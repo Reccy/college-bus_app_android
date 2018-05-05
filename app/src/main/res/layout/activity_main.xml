@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="16dp"
         android:background="@drawable/shape_gradient_top_shadow"
-        app:layout_anchor="@id/bus_bottom_sheet" />
+        app:layout_anchor="@id/bottom_sheet" />
 
     <include layout="@layout/bus_bottom_sheet" />
 </android.support.design.widget.CoordinatorLayout>

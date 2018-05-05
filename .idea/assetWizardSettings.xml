@@ -35,7 +35,7 @@
                                           <PersistentState>
                                             <option name="values">
                                               <map>
-                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/navigation/ic_close_black_24dp.xml" />
+                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/content/ic_report_black_24dp.xml" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -58,7 +58,7 @@
                                     <map>
                                       <entry key="iconShape" value="NONE" />
                                       <entry key="imageAsset" value="D:\Dropbox\NCI\Semester 8\Software Project\Project Files\BusStopApp\app\src\main\res\drawable\bus_stop_marker.png" />
-                                      <entry key="outputName" value="ic_close" />
+                                      <entry key="outputName" value="ic_stop" />
                                     </map>
                                   </option>
                                 </PersistentState>
