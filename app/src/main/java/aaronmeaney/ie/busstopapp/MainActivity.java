@@ -23,6 +23,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -52,6 +54,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @BindView(R.id.bottom_title)
     public TextView bottomTitle;
 
+    @BindView(R.id.bottom_subtitle)
+    public TextView bottomSubtitle;
+
     private BottomSheetBehavior bottomSheet;
 
     private BusStopAdapter busStopAdapter;
@@ -67,6 +72,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        setupBottomSheet();
+    }
+
+    //region Setup Bottom Sheet
+    private void setupBottomSheet()
+    {
         // Setup bottom sheet
         bottomSheet = BottomSheetBehavior.from(bottomSheetLayout);
 
@@ -116,21 +127,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
         bottomSheetShadow.setVisibility(View.GONE);
 
-        // Setup Bottom Sheet List
-        final ArrayList<BusStop> busStops = new ArrayList<BusStop>() {{
-
-            add(new BusStop("Laurelton", "s_Laurelton", 53, -3));
-            add(new BusStop("Applewood Village", "s_Applewood Village", 53, -3));
-            add(new BusStop("Boroimhe", "s_Boroimhe", 53, -3));
-            add(new BusStop("Eden Quay", "s_Eden Quay", 53, -3));
-
-        }};
-
-        busStopAdapter = new BusStopAdapter(busStops);
-        layoutBottomSheetList.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-        layoutBottomSheetList.setItemAnimator(new DefaultItemAnimator());
-        layoutBottomSheetList.setAdapter(busStopAdapter);
-
         // Fix to prevent ListView and BottomSheet from interfering with touch events
         // Source: https://stackoverflow.com/a/46128956
         layoutBottomSheetList.setOnTouchListener(new View.OnTouchListener() {
@@ -155,16 +151,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
     }
+    //endregion
 
-
+    //region Google Maps
     /*
      * Google Maps Attributes
      */
-
-    private HashMap<String, Marker> busMarkers;
-    private HashMap<String, Double> busTimestamps;
-    private HashMap<JsonElement, Marker> busStopMarkers;
-    private HashMap<JsonElement, Double> busStopTimestamps;
+    private BiMap<BusStop, Marker> busStopMarkers;
+    private BiMap<Bus, Marker> busMarkers;
 
     /**
      * Manipulates the map once available.
@@ -180,6 +174,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
+
+                if (busMarkers.containsValue(marker)) {
+                    handleBusMarkerSelected(busMarkers.inverse().get(marker), marker);
+
+                }
+
+                if (busStopMarkers.containsValue(marker)) {
+                    handleBusStopMarkerSelected(busStopMarkers.inverse().get(marker), marker);
+                }
+
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
                 mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
@@ -195,10 +199,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // Setup BusStopAPI
-        busMarkers = new HashMap<>();
-        busTimestamps = new HashMap<>();
-        busStopMarkers = new HashMap<>();
-        busStopTimestamps = new HashMap<>();
+        busMarkers = HashBiMap.create();
+        busStopMarkers = HashBiMap.create();
 
         final BusStopAPI busStopAPI = BusStopAPI.getInstance();
 
@@ -208,17 +210,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 busStopAPI.getBusStops();
             }
         });
-
-        /// DEBUG MARKER REMOVE WHEN PUB NUB GOES BACK ONLINE
-        Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_marker)).getBitmap();
-        bitmap = Bitmap.createScaledBitmap(bitmap, 250, 250, false);
-
-        Marker newMarker = mMap.addMarker(new MarkerOptions()
-                .position(new LatLng(53.347753, -6.242407))
-                .title("Debug Bus")
-                .zIndex(2f)
-                .icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
-        /// END OF DEBUG MARKER CODE
 
         busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
             @Override
@@ -237,6 +228,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busStopAPI.initialize();
     }
 
+    private void handleBusMarkerSelected(Bus bus, Marker marker) {
+        bottomTitle.setText(bus.getName());
+        bottomSubtitle.setVisibility(View.VISIBLE);
+    }
+
+    private void handleBusStopMarkerSelected(BusStop busStop, Marker marker) {
+        bottomTitle.setText(busStop.getId());
+        bottomSubtitle.setVisibility(View.INVISIBLE);
+    }
+
     /**
      * Handles the bus stop data received from the API
      */
@@ -247,14 +248,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
         busStopMarkers.clear();
 
-        for (final JsonElement busStop : busStops) {
+        for (final JsonElement busStopJson : busStops) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    String id = busStop.getAsJsonObject().get("id").getAsString();
-                    String internalId = busStop.getAsJsonObject().get("internal_id").getAsString();
-                    double latitude = busStop.getAsJsonObject().get("latitude").getAsDouble();
-                    double longitude = busStop.getAsJsonObject().get("longitude").getAsDouble();
+                    String id = busStopJson.getAsJsonObject().get("id").getAsString();
+                    String internalId = busStopJson.getAsJsonObject().get("internal_id").getAsString();
+                    double latitude = busStopJson.getAsJsonObject().get("latitude").getAsDouble();
+                    double longitude = busStopJson.getAsJsonObject().get("longitude").getAsDouble();
+
+                    BusStop busStop = new BusStop(id, internalId, latitude, longitude);
 
                     Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_stop_marker)).getBitmap();
                     bitmap = Bitmap.createScaledBitmap(bitmap, 150, 150, false);
@@ -269,7 +272,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
     }
+    //endregion
 
+    //region API Handlers
     /**
      * Handles the bus data received from the API
      */
@@ -283,20 +288,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void run() {
 
-                LatLng position = new LatLng(latitude, longitude);
+                Bus bus = new Bus(busName, latitude, longitude, sent_at);
+                LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
-                // Prevent bus data from being updated out of order
-                if (busTimestamps.containsKey(busName)) {
-                    if (sent_at < busTimestamps.get(busName)) {
-                        return;
+                // Set the current bus
+                for (Bus b : busMarkers.inverse().values()) {
+                    if (busName.equals(b.getName())) {
+                        bus = b;
+                        if (sent_at < b.getTimestamp()) {
+                            return;
+                        } else {
+                            break;
+                        }
                     }
                 }
-                busTimestamps.put(busName, sent_at);
 
                 // Set marker
-                if (busMarkers.containsKey(busName)) {
-                    busMarkers.get(busName).setPosition(position);
+                if (busMarkers.containsKey(bus)) {
+                    System.out.println("Updating bus " + bus.getName() + " position.");
+                    busMarkers.get(bus).setPosition(position);
                 } else {
+                    System.out.println("Creating new bus marker for " + bus.getName());
                     Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_marker)).getBitmap();
                     bitmap = Bitmap.createScaledBitmap(bitmap, 250, 250, false);
 
@@ -306,7 +318,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             .zIndex(2f)
                             .icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
 
-                    busMarkers.put(busName, newMarker);
+                    busMarkers.forcePut(bus, newMarker);
                 }
             }
         });
@@ -320,14 +332,26 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         System.out.println("Bus " + busName + " ended its service.");
 
+        Bus busTemp = null;
+
+        for (Bus b : busMarkers.inverse().values()) {
+            if (b.getName().equals(busName)) {
+                busTemp = b;
+            } else {
+                return;
+            }
+        }
+
+        final Bus bus = busTemp;
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (busMarkers.containsKey(busName)) {
+                if (busMarkers.containsKey(bus)) {
                     System.out.println("Removing marker...");
 
-                    busMarkers.get(busName).remove();
-                    busMarkers.remove(busName);
+                    busMarkers.get(bus).remove();
+                    busMarkers.remove(bus);
                 }
             }
         });
@@ -343,4 +367,5 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
         }
     }
+    //endregion
 }
