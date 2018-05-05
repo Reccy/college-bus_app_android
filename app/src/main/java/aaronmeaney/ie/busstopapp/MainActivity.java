@@ -30,7 +30,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 
 import butterknife.BindView;
@@ -38,6 +40,7 @@ import butterknife.BindView;
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    private BusStopAPI busStopAPI;
 
     @BindView(R.id.bottom_sheet)
     public LinearLayout bottomSheetLayout;
@@ -159,6 +162,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private BiMap<BusStop, Marker> busStopMarkers;
     private BiMap<Bus, Marker> busMarkers;
+    private ArrayList<BusRoute> busRoutes;
 
     /**
      * Manipulates the map once available.
@@ -201,6 +205,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         // Setup BusStopAPI
         busMarkers = HashBiMap.create();
         busStopMarkers = HashBiMap.create();
+        busRoutes = new ArrayList<>();
 
         final BusStopAPI busStopAPI = BusStopAPI.getInstance();
 
@@ -208,6 +213,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onBusStopAPIInitialized() {
                 busStopAPI.getBusStops();
+                busStopAPI.getBusRoutes();
             }
         });
 
@@ -225,11 +231,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        busStopAPI.addOnReceivedBusRoutes(new BusStopAPI.BusStopAPIReceivedBusRoutesListener() {
+            @Override
+            public void onBusStopAPIReceivedBusRoutes(JsonArray busRoutes) {
+                handleBusRouteData(busRoutes);
+            }
+        });
+
         busStopAPI.initialize();
     }
 
     private void handleBusMarkerSelected(Bus bus, Marker marker) {
-        bottomTitle.setText(bus.getName());
+        bottomTitle.setText(bus.getCompanyName() + " - " + bus.getCurrentRoute().getId());
         bottomSubtitle.setVisibility(View.VISIBLE);
     }
 
@@ -272,6 +285,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
     }
+
+    /**
+     * Handles the bus route data received from the API
+     */
+    private void handleBusRouteData(JsonArray busRoutesJson) {
+        for (JsonElement busRouteJson : busRoutesJson) {
+            String id = busRouteJson.getAsJsonObject().get("id").getAsString();
+            String internalId = busRouteJson.getAsJsonObject().get("internal_id").getAsString();
+
+            ArrayList<BusStop> tempBusStops = new ArrayList<>();
+
+            for (JsonElement jsonIdInternal : busRouteJson.getAsJsonObject().get("bus_stops").getAsJsonArray()) {
+                for (BusStop busStop : busStopMarkers.inverse().values()) {
+                    if (busStop.getInternalId().equals(jsonIdInternal.getAsString())) {
+                        tempBusStops.add(busStop);
+                        break;
+                    }
+                }
+            }
+
+            BusRoute busRoute = new BusRoute(id, internalId, tempBusStops);
+            busRoutes.add(busRoute);
+        }
+    }
     //endregion
 
     //region API Handlers
@@ -282,13 +319,37 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String busName = message.get("bus_name").getAsString();
         final double latitude = message.get("latitude").getAsDouble();
         final double longitude = message.get("longitude").getAsDouble();
+        final String registrationNumber = message.get("registration_number").getAsString();
+        final String model = message.get("model").getAsString();
+        final String company = message.get("company").getAsString();
+        final String routeIdInternal = message.get("route_id_internal").getAsString();
+        final String currentStopIdInternal = message.get("current_stop_id_internal").getAsString();
+        final int currentCapacity = message.get("current_capacity").getAsInt();
+        final int maximumCapacity = message.get("maximum_capacity").getAsInt();
         final double sent_at = message.get("sent_at").getAsDouble();
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
-                Bus bus = new Bus(busName, latitude, longitude, sent_at);
+                BusRoute busRoute = null;
+                BusStop busStop = null;
+
+                for (BusRoute route : busRoutes) {
+                    if (route.getIdInternal().equals(routeIdInternal)) {
+                        busRoute = route;
+                        break;
+                    }
+                }
+
+                for (BusStop stop : busStopMarkers.inverse().values()) {
+                    if (stop.getInternalId().equals(currentStopIdInternal)) {
+                        busStop = stop;
+                        break;
+                    }
+                }
+
+                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, currentCapacity, maximumCapacity, sent_at);
                 LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
                 // Set the current bus

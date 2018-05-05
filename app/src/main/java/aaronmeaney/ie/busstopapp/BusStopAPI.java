@@ -52,6 +52,11 @@ class BusStopAPI {
     }
     private List<BusStopAPIReceivedBusStopsListener> busStopsListeners;
 
+    public interface BusStopAPIReceivedBusRoutesListener {
+        void onBusStopAPIReceivedBusRoutes(JsonArray busRoutes);
+    }
+    private List<BusStopAPIReceivedBusRoutesListener> busRoutesListeners;
+
     public final String PUBNUB_CHANNEL = "bus_stop";
     public final String API_BASE_URL = "https://bus-stop-api.herokuapp.com/";
     private boolean initialized = false;
@@ -69,6 +74,7 @@ class BusStopAPI {
         initListeners = new ArrayList<>();
         msgListeners = new ArrayList<>();
         busStopsListeners = new ArrayList<>();
+        busRoutesListeners = new ArrayList<>();
     }
 
     public void addOnInitializedListener(BusStopAPIInitializedListener listener) {
@@ -81,6 +87,10 @@ class BusStopAPI {
 
     public void addOnReceivedBusStops(BusStopAPIReceivedBusStopsListener listener) {
         busStopsListeners.add(listener);
+    }
+
+    public void addOnReceivedBusRoutes(BusStopAPIReceivedBusRoutesListener listener) {
+        busRoutesListeners.add(listener);
     }
 
     /**
@@ -235,6 +245,32 @@ class BusStopAPI {
 
                 for (BusStopAPIReceivedBusStopsListener listener : busStopsListeners) {
                     listener.onBusStopAPIReceivedBusStops(busStopsJson);
+                }
+            }
+        });
+    }
+
+    public void getBusRoutes() {
+        String url = API_BASE_URL + "bus_routes";
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println("[Bus Stop API] Get Bus Routes error: " + e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                JsonArray busRoutesJson = new JsonParser().parse(response.body().string()).getAsJsonArray();
+
+                System.out.println("[Bus Stop API] Bus Routes: " + busRoutesJson.toString());
+
+                for (BusStopAPIReceivedBusRoutesListener listener : busRoutesListeners) {
+                    listener.onBusStopAPIReceivedBusRoutes(busRoutesJson);
                 }
             }
         });
