@@ -356,7 +356,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String currentStopIdInternal = message.get("current_stop_id_internal").getAsString();
         final int currentCapacity = message.get("current_capacity").getAsInt();
         final int maximumCapacity = message.get("maximum_capacity").getAsInt();
-        final double sent_at = message.get("sent_at").getAsDouble();
+        final double sentAt = message.get("sent_at").getAsDouble();
 
         runOnUiThread(new Runnable() {
             @Override
@@ -379,7 +379,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
 
-                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, currentCapacity, maximumCapacity, sent_at);
+                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, currentCapacity, maximumCapacity, sentAt);
                 LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
                 // Set the current bus
@@ -390,8 +390,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         bus.setLongitude(longitude);
                         bus.setCurrentStop(busStop);
                         bus.setCurrentCapacity(currentCapacity);
-                        bus.setTimestamp(sent_at);
-                        if (sent_at < b.getTimestamp()) {
+                        bus.setTimestamp(sentAt);
+                        if (sentAt < b.getTimestamp()) {
                             return;
                         } else {
                             break;
@@ -445,8 +445,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         final Bus bus = busTemp;
 
-        if (bus.equals(selectedBus)) {
+        if (selectedBus != null && bus.equals(selectedBus)) {
             selectedBus = null;
+
+            bottomSheet.setHideable(true);
+            bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
         }
 
         runOnUiThread(new Runnable() {
