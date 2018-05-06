@@ -65,6 +65,10 @@ public class Bus {
         return currentRoute;
     }
 
+    public void setCurrentStop(BusStop currentStop) {
+        this.currentStop = currentStop;
+    }
+
     public BusStop getCurrentStop() {
         return currentStop;
     }
@@ -73,8 +77,16 @@ public class Bus {
         return currentCapacity;
     }
 
+    public void setCurrentCapacity(int currentCapacity) {
+        this.currentCapacity = currentCapacity;
+    }
+
     public int getMaximumCapacity() {
         return maximumCapacity;
+    }
+
+    public void setTimestamp(double timestamp) {
+        this.timestamp = timestamp;
     }
 
     public double getTimestamp() {

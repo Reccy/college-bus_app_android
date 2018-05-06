@@ -13,8 +13,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"
-        android:layout_centerVertical="true"
         android:text="Bus Stop Name"/>
+
+    <TextView
+        android:id="@+id/subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title"
+        android:text="Bus ETA"/>
 
     <ImageView
         android:id="@+id/right_btn"

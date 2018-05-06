@@ -7,6 +7,7 @@ import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.MotionEvent;
@@ -30,10 +31,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 
 import butterknife.BindView;
 
@@ -163,6 +161,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private BiMap<BusStop, Marker> busStopMarkers;
     private BiMap<Bus, Marker> busMarkers;
     private ArrayList<BusRoute> busRoutes;
+    private Bus selectedBus;
 
     /**
      * Manipulates the map once available.
@@ -198,6 +197,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 bottomSheet.setHideable(false);
                 bottomSheetShadow.setVisibility(View.VISIBLE);
 
+                // Setup recycler view
+                layoutBottomSheetList.addItemDecoration(new DividerItemDecoration(getApplicationContext(), LinearLayoutManager.VERTICAL));
+                RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+                layoutBottomSheetList.setLayoutManager(layoutManager);
+                layoutBottomSheetList.setItemAnimator(new DefaultItemAnimator());
+
                 return true;
             }
         });
@@ -206,6 +211,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busMarkers = HashBiMap.create();
         busStopMarkers = HashBiMap.create();
         busRoutes = new ArrayList<>();
+        selectedBus = null;
 
         final BusStopAPI busStopAPI = BusStopAPI.getInstance();
 
@@ -213,7 +219,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onBusStopAPIInitialized() {
                 busStopAPI.getBusStops();
-                busStopAPI.getBusRoutes();
             }
         });
 
@@ -228,6 +233,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onBusStopAPIReceivedBusStops(JsonArray busStops) {
                 handleBusStopData(busStops);
+                busStopAPI.getBusRoutes();
             }
         });
 
@@ -242,13 +248,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleBusMarkerSelected(Bus bus, Marker marker) {
+        selectedBus = bus;
+
         bottomTitle.setText(bus.getCompanyName() + " - " + bus.getCurrentRoute().getId());
         bottomSubtitle.setVisibility(View.VISIBLE);
+
+        updateBusList(bus);
     }
 
     private void handleBusStopMarkerSelected(BusStop busStop, Marker marker) {
+        selectedBus = null;
+
         bottomTitle.setText(busStop.getId());
         bottomSubtitle.setVisibility(View.INVISIBLE);
+    }
+
+    /**
+     * Updates the recycler view list on the bottom sheet.
+     */
+    private void updateBusList(Bus bus) {
+        int currentRouteIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
+        ArrayList<BusStop> displayedList = new ArrayList<>(bus.getCurrentRoute().getBusStops().subList(currentRouteIndex, bus.getCurrentRoute().getBusStops().size()));
+
+        busStopAdapter = new BusStopAdapter(displayedList);
+        layoutBottomSheetList.setAdapter(busStopAdapter);
     }
 
     /**
@@ -289,25 +312,32 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Handles the bus route data received from the API
      */
-    private void handleBusRouteData(JsonArray busRoutesJson) {
-        for (JsonElement busRouteJson : busRoutesJson) {
-            String id = busRouteJson.getAsJsonObject().get("id").getAsString();
-            String internalId = busRouteJson.getAsJsonObject().get("internal_id").getAsString();
+    private void handleBusRouteData(final JsonArray busRoutesJson) {
+        // runOnUiThread to prevent ConcurrencyException while accessing busStopMarkers
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for (JsonElement busRouteJson : busRoutesJson) {
+                    String id = busRouteJson.getAsJsonObject().get("id").getAsString();
+                    String internalId = busRouteJson.getAsJsonObject().get("internal_id").getAsString();
 
-            ArrayList<BusStop> tempBusStops = new ArrayList<>();
+                    ArrayList<BusStop> tempBusStops = new ArrayList<>();
 
-            for (JsonElement jsonIdInternal : busRouteJson.getAsJsonObject().get("bus_stops").getAsJsonArray()) {
-                for (BusStop busStop : busStopMarkers.inverse().values()) {
-                    if (busStop.getInternalId().equals(jsonIdInternal.getAsString())) {
-                        tempBusStops.add(busStop);
-                        break;
+                    for (JsonElement jsonIdInternal : busRouteJson.getAsJsonObject().get("bus_stops").getAsJsonArray()) {
+                        for (BusStop busStop : busStopMarkers.inverse().values()) {
+                            if (busStop.getInternalId().equals(jsonIdInternal.getAsString())) {
+                                System.out.println("Adding stop " + busStop.getInternalId() + " to route " + internalId);
+                                tempBusStops.add(busStop);
+                                break;
+                            }
+                        }
                     }
+
+                    BusRoute busRoute = new BusRoute(id, internalId, tempBusStops);
+                    busRoutes.add(busRoute);
                 }
             }
-
-            BusRoute busRoute = new BusRoute(id, internalId, tempBusStops);
-            busRoutes.add(busRoute);
-        }
+        });
     }
     //endregion
 
@@ -356,12 +386,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 for (Bus b : busMarkers.inverse().values()) {
                     if (busName.equals(b.getName())) {
                         bus = b;
+                        bus.setLatitude(latitude);
+                        bus.setLongitude(longitude);
+                        bus.setCurrentStop(busStop);
+                        bus.setCurrentCapacity(currentCapacity);
+                        bus.setTimestamp(sent_at);
                         if (sent_at < b.getTimestamp()) {
                             return;
                         } else {
                             break;
                         }
                     }
+                }
+
+                // Update list
+                if (bus.equals(selectedBus)) {
+                    updateBusList(selectedBus);
                 }
 
                 // Set marker
@@ -404,6 +444,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         final Bus bus = busTemp;
+
+        if (bus.equals(selectedBus)) {
+            selectedBus = null;
+        }
 
         runOnUiThread(new Runnable() {
             @Override
