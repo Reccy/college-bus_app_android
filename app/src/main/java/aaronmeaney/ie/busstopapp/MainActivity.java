@@ -32,6 +32,7 @@ import com.google.gson.JsonObject;
 import com.pubnub.api.models.consumer.pubsub.PNMessageResult;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 
@@ -60,7 +61,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private BottomSheetBehavior bottomSheet;
 
-    private BusStopAdapter busStopAdapter;
+    private TimeSlotAdapter timeSlotAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -267,11 +268,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
      * Updates the recycler view list on the bottom sheet.
      */
     private void updateBusList(Bus bus) {
-        int currentRouteIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
-        ArrayList<BusStop> displayedList = new ArrayList<>(bus.getCurrentRoute().getBusStops().subList(currentRouteIndex, bus.getCurrentRoute().getBusStops().size()));
 
-        busStopAdapter = new BusStopAdapter(displayedList);
-        layoutBottomSheetList.setAdapter(busStopAdapter);
+        // TODO: Add in smooth removal of route items as the bus advances
+
+        int currentRouteIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
+        ArrayList<TimeSlot> displayedList = new ArrayList<>(bus.getTimeslots());
+
+        timeSlotAdapter = new TimeSlotAdapter(displayedList);
+        layoutBottomSheetList.setAdapter(timeSlotAdapter);
     }
 
     /**
@@ -354,6 +358,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String company = message.get("company").getAsString();
         final String routeIdInternal = message.get("route_id_internal").getAsString();
         final String currentStopIdInternal = message.get("current_stop_id_internal").getAsString();
+        final JsonObject timeslotsJson = message.get("timeslots").getAsJsonObject();
         final int currentCapacity = message.get("current_capacity").getAsInt();
         final int maximumCapacity = message.get("maximum_capacity").getAsInt();
         final double sentAt = message.get("sent_at").getAsDouble();
@@ -379,7 +384,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
 
-                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, currentCapacity, maximumCapacity, sentAt);
+                List<TimeSlot> timeslots = new ArrayList<>();
+                for (Object k : timeslotsJson.keySet()) {
+                    String key = (String)k;
+                    String val = timeslotsJson.get(key).getAsString();
+
+                    BusStop stop = null;
+                    for (BusStop stopCheck : busStopMarkers.inverse().values()) {
+
+                        System.out.println("Checking " + key + " vs " + stopCheck.getInternalId());
+
+                        if (stopCheck.getInternalId().equals(key)) {
+                            stop = stopCheck;
+                            System.out.println("Matched " + stop.getInternalId());
+                            break;
+                        }
+                    }
+
+                    TimeSlot newTimeslot = new TimeSlot(stop, val);
+                    timeslots.add(newTimeslot);
+                }
+
+                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, timeslots, currentCapacity, maximumCapacity, sentAt);
                 LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
                 // Set the current bus

@@ -1,5 +1,7 @@
 package aaronmeaney.ie.busstopapp;
 
+import java.util.List;
+
 public class Bus {
     private String name;
     private double latitude;
@@ -9,13 +11,14 @@ public class Bus {
     private String companyName;
     private BusRoute currentRoute;
     private BusStop currentStop;
+    private List<TimeSlot> timeslots;
     private int currentCapacity;
     private int maximumCapacity;
     private double timestamp;
 
     public Bus(String name, double latitude, double longitude, String registrationNumber,
                String model, String companyName, BusRoute currentRoute, BusStop currentStop,
-               int currentCapacity, int maximumCapacity, double timestamp) {
+               List<TimeSlot> timeslots, int currentCapacity, int maximumCapacity, double timestamp) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -24,6 +27,7 @@ public class Bus {
         this.companyName = companyName;
         this.currentRoute = currentRoute;
         this.currentStop = currentStop;
+        this.timeslots = timeslots;
         this.currentCapacity = currentCapacity;
         this.maximumCapacity = maximumCapacity;
         this.timestamp = timestamp;
@@ -71,6 +75,14 @@ public class Bus {
 
     public BusStop getCurrentStop() {
         return currentStop;
+    }
+
+    public List<TimeSlot> getTimeslots() {
+        return timeslots;
+    }
+
+    public void setTimeslots(List<TimeSlot> timeslots) {
+        this.timeslots = timeslots;
     }
 
     public int getCurrentCapacity() {
