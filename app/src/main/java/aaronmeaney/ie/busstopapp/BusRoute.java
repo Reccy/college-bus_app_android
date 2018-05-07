@@ -1,5 +1,6 @@
 package aaronmeaney.ie.busstopapp;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class BusRoute {
@@ -23,5 +24,14 @@ public class BusRoute {
 
     public List<BusStop> getBusStops() {
         return busStops;
+    }
+
+    @Override
+    public String toString() {
+        return "BusRoute{" +
+                "id='" + id + '\'' +
+                ", idInternal='" + idInternal + '\'' +
+                ", busStops=" + Arrays.toString(busStops.toArray()) +
+                '}';
     }
 }

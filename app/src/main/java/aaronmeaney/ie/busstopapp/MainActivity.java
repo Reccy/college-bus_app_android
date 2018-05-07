@@ -36,7 +36,7 @@ import java.util.List;
 
 import butterknife.BindView;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, AdapterHailCallback, AdapterViewBusStopCallback {
 
     private GoogleMap mMap;
     private BusStopAPI busStopAPI;
@@ -181,7 +181,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if (busMarkers.containsValue(marker)) {
                     handleBusMarkerSelected(busMarkers.inverse().get(marker), marker);
-
                 }
 
                 if (busStopMarkers.containsValue(marker)) {
@@ -197,16 +196,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 bottomSheet.setHideable(false);
                 bottomSheetShadow.setVisibility(View.VISIBLE);
-
-                // Setup recycler view
-                layoutBottomSheetList.addItemDecoration(new DividerItemDecoration(getApplicationContext(), LinearLayoutManager.VERTICAL));
-                RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
-                layoutBottomSheetList.setLayoutManager(layoutManager);
-                layoutBottomSheetList.setItemAnimator(new DefaultItemAnimator());
-
                 return true;
             }
         });
+
+        // Setup recycler view
+        layoutBottomSheetList.addItemDecoration(new DividerItemDecoration(getApplicationContext(), LinearLayoutManager.VERTICAL));
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+        layoutBottomSheetList.setLayoutManager(layoutManager);
+        layoutBottomSheetList.setItemAnimator(new DefaultItemAnimator());
 
         // Setup BusStopAPI
         busMarkers = HashBiMap.create();
@@ -214,7 +212,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busRoutes = new ArrayList<>();
         selectedBus = null;
 
-        final BusStopAPI busStopAPI = BusStopAPI.getInstance();
+        busStopAPI = BusStopAPI.getInstance();
 
         busStopAPI.addOnInitializedListener(new BusStopAPI.BusStopAPIInitializedListener() {
             @Override
@@ -249,7 +247,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleBusMarkerSelected(Bus bus, Marker marker) {
-        selectedBus = bus;
+        if (bus.equals(selectedBus))
+            return;
+
+        updateSelectedBus(bus);
 
         bottomTitle.setText(bus.getCompanyName() + " - " + bus.getCurrentRoute().getId());
         bottomSubtitle.setVisibility(View.VISIBLE);
@@ -258,24 +259,49 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleBusStopMarkerSelected(BusStop busStop, Marker marker) {
-        selectedBus = null;
+        updateSelectedBus(null);
 
         bottomTitle.setText(busStop.getId());
         bottomSubtitle.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    public void onHailClickedCallback(Bus bus, BusStop busStop) {
+        System.out.println("Hailing " + bus.getRegistrationNumber() + " for " + busStop.getInternalId());
+        busStopAPI.sendHailToBus(bus, busStop);
+    }
+
+    @Override
+    public void onViewBusStopClicked(BusStop busStop) {
+        System.out.println("Selected Bus Stop: " + busStop.getInternalId());
     }
 
     /**
      * Updates the recycler view list on the bottom sheet.
      */
     private void updateBusList(Bus bus) {
+        if (bus != selectedBus)
+            return;
 
-        // TODO: Add in smooth removal of route items as the bus advances
+        int currentStopIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
+        ArrayList<TimeSlot> displayedList = new ArrayList<>(bus.getTimeslots().subList(currentStopIndex, bus.getTimeslots().size()));
 
-        int currentRouteIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
-        ArrayList<TimeSlot> displayedList = new ArrayList<>(bus.getTimeslots());
+        if (timeSlotAdapter == null || timeSlotAdapter.getItemCount() == 0) {
+            timeSlotAdapter = new TimeSlotAdapter(bus, displayedList, this, this);
+            layoutBottomSheetList.setAdapter(timeSlotAdapter);
+        } else {
+            timeSlotAdapter.update(displayedList);
+            System.out.println(bus.getCurrentRoute());
+            System.out.println(timeSlotAdapter.toString());
+        }
+    }
 
-        timeSlotAdapter = new TimeSlotAdapter(displayedList);
-        layoutBottomSheetList.setAdapter(timeSlotAdapter);
+    /**
+     * Updates the selected bus and clears any data related to it.
+     */
+    private void updateSelectedBus(Bus bus) {
+        selectedBus = bus;
+        timeSlotAdapter = null;
     }
 
     /**
@@ -392,11 +418,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     BusStop stop = null;
                     for (BusStop stopCheck : busStopMarkers.inverse().values()) {
 
-                        System.out.println("Checking " + key + " vs " + stopCheck.getInternalId());
-
                         if (stopCheck.getInternalId().equals(key)) {
                             stop = stopCheck;
-                            System.out.println("Matched " + stop.getInternalId());
                             break;
                         }
                     }
@@ -426,9 +449,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Update list
-                if (bus.equals(selectedBus)) {
+                if (selectedBus != null)
+                {
+                    System.out.println("Sending udpate bus list");
                     updateBusList(selectedBus);
                 }
+
 
                 // Set marker
                 if (busMarkers.containsKey(bus)) {
@@ -472,10 +498,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final Bus bus = busTemp;
 
         if (selectedBus != null && bus.equals(selectedBus)) {
-            selectedBus = null;
+            updateSelectedBus(null);
 
             bottomSheet.setHideable(true);
             bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
+            bottomSheetShadow.setVisibility(View.GONE);
         }
 
         runOnUiThread(new Runnable() {

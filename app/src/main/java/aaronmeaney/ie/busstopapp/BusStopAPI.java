@@ -159,6 +159,14 @@ class BusStopAPI {
                 .execute();
     }
 
+    /**
+     * Sends a hail message to a bus to make it prepare to stop.
+     */
+    public void sendHailToBus(Bus bus, BusStop stop) {
+        HashMap<String, String> busToBusStopMap = new HashMap<>();
+        busToBusStopMap.put(bus.getRegistrationNumber(), stop.getInternalId());
+        publishMessage("hail_bus", busToBusStopMap);
+    }
 
     /**
      * Sends a message to PubNub
