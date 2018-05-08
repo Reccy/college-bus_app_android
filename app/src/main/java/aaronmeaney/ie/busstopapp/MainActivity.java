@@ -36,7 +36,7 @@ import java.util.List;
 
 import butterknife.BindView;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback, AdapterHailCallback, AdapterViewBusStopCallback {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, AdapterHailCallback, AdapterViewBusStopCallback {
 
     private GoogleMap mMap;
     private BusStopAPI busStopAPI;
@@ -175,30 +175,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(53.410562, -6.227770), 10));
 
         // Setup Google Map listeners
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-
-                if (busMarkers.containsValue(marker)) {
-                    handleBusMarkerSelected(busMarkers.inverse().get(marker), marker);
-                }
-
-                if (busStopMarkers.containsValue(marker)) {
-                    handleBusStopMarkerSelected(busStopMarkers.inverse().get(marker), marker);
-                }
-
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
-                mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-
-                final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
-                int pixels = (int) (80 * scale + 0.5f);
-                bottomSheet.setPeekHeight(pixels);
-                bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                bottomSheet.setHideable(false);
-                bottomSheetShadow.setVisibility(View.VISIBLE);
-                return true;
-            }
-        });
+        mMap.setOnMarkerClickListener(this);
 
         // Setup recycler view
         layoutBottomSheetList.addItemDecoration(new DividerItemDecoration(getApplicationContext(), LinearLayoutManager.VERTICAL));
@@ -246,6 +223,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busStopAPI.initialize();
     }
 
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        if (busMarkers.containsValue(marker)) {
+            handleBusMarkerSelected(busMarkers.inverse().get(marker), marker);
+        }
+
+        if (busStopMarkers.containsValue(marker)) {
+            handleBusStopMarkerSelected(busStopMarkers.inverse().get(marker), marker);
+        }
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+        final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
+        int pixels = (int) (80 * scale + 0.5f);
+        bottomSheet.setPeekHeight(pixels);
+        bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        bottomSheet.setHideable(false);
+        bottomSheetShadow.setVisibility(View.VISIBLE);
+        return true;
+    }
+
     private void handleBusMarkerSelected(Bus bus, Marker marker) {
         if (bus.equals(selectedBus))
             return;
@@ -274,6 +273,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onViewBusStopClicked(BusStop busStop) {
         System.out.println("Selected Bus Stop: " + busStop.getInternalId());
+        this.onMarkerClick(busStopMarkers.get(busStop));
     }
 
     /**
@@ -451,7 +451,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Update list
                 if (selectedBus != null)
                 {
-                    System.out.println("Sending udpate bus list");
+                    bottomSubtitle.setText(selectedBus.getCurrentCapacity() + " / " + selectedBus.getMaximumCapacity() + " seats");
                     updateBusList(selectedBus);
                 }
 
@@ -500,9 +500,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (selectedBus != null && bus.equals(selectedBus)) {
             updateSelectedBus(null);
 
-            bottomSheet.setHideable(true);
-            bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
-            bottomSheetShadow.setVisibility(View.GONE);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    bottomSheet.setHideable(true);
+                    bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
+                    bottomSheetShadow.setVisibility(View.GONE);
+                }
+            });
         }
 
         runOnUiThread(new Runnable() {

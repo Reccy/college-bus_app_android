@@ -164,7 +164,8 @@ class BusStopAPI {
      */
     public void sendHailToBus(Bus bus, BusStop stop) {
         HashMap<String, String> busToBusStopMap = new HashMap<>();
-        busToBusStopMap.put(bus.getRegistrationNumber(), stop.getInternalId());
+        busToBusStopMap.put("bus_reg", bus.getRegistrationNumber());
+        busToBusStopMap.put("bus_stop", stop.getInternalId());
         publishMessage("hail_bus", busToBusStopMap);
     }
 
