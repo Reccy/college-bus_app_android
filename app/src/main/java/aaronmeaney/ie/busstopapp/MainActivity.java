@@ -1,6 +1,7 @@
 package aaronmeaney.ie.busstopapp;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
@@ -24,6 +25,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonArray;
@@ -62,6 +65,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private BottomSheetBehavior bottomSheet;
 
     private TimeSlotAdapter timeSlotAdapter;
+
+    private Polyline busRouteLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,6 +181,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Setup Google Map listeners
         mMap.setOnMarkerClickListener(this);
+
+        // Setup route polyline
+        PolylineOptions polylineOptions = new PolylineOptions();
+        polylineOptions.color(Color.RED);
+        polylineOptions.width(5);
+        busRouteLine = mMap.addPolyline(polylineOptions);
 
         // Setup recycler view
         layoutBottomSheetList.addItemDecoration(new DividerItemDecoration(getApplicationContext(), LinearLayoutManager.VERTICAL));
@@ -384,7 +395,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String company = message.get("company").getAsString();
         final String routeIdInternal = message.get("route_id_internal").getAsString();
         final String currentStopIdInternal = message.get("current_stop_id_internal").getAsString();
+        final JsonArray hailedBusStopsJson = message.get("hailed_stops").getAsJsonArray();
         final JsonObject timeslotsJson = message.get("timeslots").getAsJsonObject();
+        final JsonArray waypointsJson = message.get("waypoints").getAsJsonArray();
         final int currentCapacity = message.get("current_capacity").getAsInt();
         final int maximumCapacity = message.get("maximum_capacity").getAsInt();
         final double sentAt = message.get("sent_at").getAsDouble();
@@ -417,7 +430,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     BusStop stop = null;
                     for (BusStop stopCheck : busStopMarkers.inverse().values()) {
-
                         if (stopCheck.getInternalId().equals(key)) {
                             stop = stopCheck;
                             break;
@@ -428,7 +440,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     timeslots.add(newTimeslot);
                 }
 
-                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company, busRoute, busStop, timeslots, currentCapacity, maximumCapacity, sentAt);
+                List<BusStop> hailedBusStops = new ArrayList<>();
+                for (JsonElement s : hailedBusStopsJson) {
+                   for (BusStop stopCheck : busStopMarkers.inverse().values()) {
+                       if (stopCheck.getInternalId().equals(s.getAsString())) {
+                           hailedBusStops.add(stopCheck);
+                           break;
+                       }
+                   }
+                }
+
+                List<LatLng> waypoints = new ArrayList<>();
+                for (JsonElement waypoint : waypointsJson) {
+                    LatLng newWaypoint = new LatLng(
+                            waypoint.getAsJsonObject().get("latitude").getAsDouble(),
+                            waypoint.getAsJsonObject().get("longitude").getAsDouble()
+                    );
+                    waypoints.add(newWaypoint);
+                }
+
+                Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company,
+                        busRoute, busStop, hailedBusStops, waypoints, timeslots, currentCapacity,
+                        maximumCapacity, sentAt);
                 LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
                 // Set the current bus
@@ -438,6 +471,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         bus.setLatitude(latitude);
                         bus.setLongitude(longitude);
                         bus.setCurrentStop(busStop);
+                        bus.setHailedStops(hailedBusStops);
                         bus.setCurrentCapacity(currentCapacity);
                         bus.setTimestamp(sentAt);
                         if (sentAt < b.getTimestamp()) {
@@ -449,12 +483,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Update list
-                if (selectedBus != null)
-                {
+                if (selectedBus != null) {
                     bottomSubtitle.setText(selectedBus.getCurrentCapacity() + " / " + selectedBus.getMaximumCapacity() + " seats");
                     updateBusList(selectedBus);
                 }
 
+                if (timeSlotAdapter != null) {
+                    timeSlotAdapter.notifyDataSetChanged();
+                }
 
                 // Set marker
                 if (busMarkers.containsKey(bus)) {
@@ -473,6 +509,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     busMarkers.forcePut(bus, newMarker);
                 }
+
+                // Draw Polyline
+                busRouteLine.setPoints(waypoints);
             }
         });
     }

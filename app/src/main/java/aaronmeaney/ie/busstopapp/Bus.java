@@ -1,5 +1,7 @@
 package aaronmeaney.ie.busstopapp;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.util.List;
 
 public class Bus {
@@ -11,6 +13,8 @@ public class Bus {
     private String companyName;
     private BusRoute currentRoute;
     private BusStop currentStop;
+    private List<BusStop> hailedStops;
+    private List<LatLng> waypoints;
     private List<TimeSlot> timeslots;
     private int currentCapacity;
     private int maximumCapacity;
@@ -18,7 +22,8 @@ public class Bus {
 
     public Bus(String name, double latitude, double longitude, String registrationNumber,
                String model, String companyName, BusRoute currentRoute, BusStop currentStop,
-               List<TimeSlot> timeslots, int currentCapacity, int maximumCapacity, double timestamp) {
+               List<BusStop> hailedStops, List<LatLng> waypoints, List<TimeSlot> timeslots,
+               int currentCapacity, int maximumCapacity, double timestamp) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -27,6 +32,8 @@ public class Bus {
         this.companyName = companyName;
         this.currentRoute = currentRoute;
         this.currentStop = currentStop;
+        this.hailedStops = hailedStops;
+        this.waypoints = waypoints;
         this.timeslots = timeslots;
         this.currentCapacity = currentCapacity;
         this.maximumCapacity = maximumCapacity;
@@ -75,6 +82,22 @@ public class Bus {
 
     public BusStop getCurrentStop() {
         return currentStop;
+    }
+
+    public List<BusStop> getHailedStops() {
+        return hailedStops;
+    }
+
+    public void setHailedStops(List<BusStop> hailedStops) {
+        this.hailedStops = hailedStops;
+    }
+
+    public List<LatLng> getWaypoints() {
+        return waypoints;
+    }
+
+    public void setWaypoints(List<LatLng> waypoints) {
+        this.waypoints = waypoints;
     }
 
     public List<TimeSlot> getTimeslots() {

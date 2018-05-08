@@ -52,6 +52,13 @@ public class TimeSlotAdapter extends RecyclerView.Adapter<TimeSlotAdapter.MyView
 
         holder.title.setText(busStop.getId());
         holder.subtitle.setText("ETA: " + timeSlots.get(position).getTime());
+
+        if (bus.getHailedStops().contains(busStop)) {
+            holder.hailBtn.setImageResource(R.mipmap.ic_more);
+        } else {
+            holder.hailBtn.setImageResource(R.mipmap.ic_stop);
+        }
+
         holder.hailBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

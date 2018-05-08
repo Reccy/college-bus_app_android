@@ -1,9 +1,8 @@
 package aaronmeaney.ie.busstopapp;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mapbox.api.directions.v5.MapboxDirections;
 import com.pubnub.api.PNConfiguration;
 import com.pubnub.api.PubNub;
 import com.pubnub.api.callbacks.PNCallback;
@@ -62,6 +61,7 @@ class BusStopAPI {
     private boolean initialized = false;
     private PubNub pubnub = null;
     private OkHttpClient okHttpClient = null;
+    private MapboxDirections mapboxDirections = null;
 
     /**
      * Returns if the API is initialized and is ready to be used.
