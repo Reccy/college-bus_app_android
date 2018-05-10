@@ -231,6 +231,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        busStopAPI.addOnReceivedRouteWaypoints(new BusStopAPI.BusStopAPIReceivedRouteWaypointsListener() {
+            @Override
+            public void onBusStopAPIRecievedRouteWaypoints(BusRoute route, List<LatLng> routeWaypoints) {
+                handleRouteWaypointsData(route, routeWaypoints);
+            }
+        });
+
         busStopAPI.initialize();
     }
 
@@ -376,6 +383,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     BusRoute busRoute = new BusRoute(id, internalId, tempBusStops);
                     busRoutes.add(busRoute);
+                    busStopAPI.getBusRouteWaypoints(busRoute);
+                }
+            }
+        });
+    }
+
+    private void handleRouteWaypointsData(final BusRoute route, final List<LatLng> waypoints) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                route.setWaypoints(waypoints);
+
+                if (selectedBus != null && selectedBus.getCurrentRoute().equals(route)) {
+                    busRouteLine.setPoints(waypoints);
                 }
             }
         });
@@ -501,8 +522,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Draw Polyline
-                // TODO: Implement polyline
-                //busRouteLine.setPoints(waypoints);
+                if (bus.getCurrentRoute().getWaypoints() != null)
+                    busRouteLine.setPoints(bus.getCurrentRoute().getWaypoints());
             }
         });
     }

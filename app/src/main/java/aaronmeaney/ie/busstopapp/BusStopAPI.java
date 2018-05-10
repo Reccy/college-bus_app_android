@@ -1,6 +1,9 @@
 package aaronmeaney.ie.busstopapp;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mapbox.api.directions.v5.MapboxDirections;
 import com.pubnub.api.PNConfiguration;
@@ -56,6 +59,11 @@ class BusStopAPI {
     }
     private List<BusStopAPIReceivedBusRoutesListener> busRoutesListeners;
 
+    public interface BusStopAPIReceivedRouteWaypointsListener {
+        void onBusStopAPIRecievedRouteWaypoints(BusRoute route, List<LatLng> routeWaypoints);
+    }
+    private List<BusStopAPIReceivedRouteWaypointsListener> routeWaypointsListeners;
+
     public final String PUBNUB_CHANNEL = "bus_stop";
     public final String API_BASE_URL = "https://bus-stop-api.herokuapp.com/";
     private boolean initialized = false;
@@ -75,6 +83,7 @@ class BusStopAPI {
         msgListeners = new ArrayList<>();
         busStopsListeners = new ArrayList<>();
         busRoutesListeners = new ArrayList<>();
+        routeWaypointsListeners = new ArrayList<>();
     }
 
     public void addOnInitializedListener(BusStopAPIInitializedListener listener) {
@@ -91,6 +100,10 @@ class BusStopAPI {
 
     public void addOnReceivedBusRoutes(BusStopAPIReceivedBusRoutesListener listener) {
         busRoutesListeners.add(listener);
+    }
+
+    public void addOnReceivedRouteWaypoints(BusStopAPIReceivedRouteWaypointsListener listener) {
+        routeWaypointsListeners.add(listener);
     }
 
     /**
@@ -280,6 +293,42 @@ class BusStopAPI {
 
                 for (BusStopAPIReceivedBusRoutesListener listener : busRoutesListeners) {
                     listener.onBusStopAPIReceivedBusRoutes(busRoutesJson);
+                }
+            }
+        });
+    }
+
+    public void getBusRouteWaypoints(final BusRoute route) {
+        String url = API_BASE_URL + "route_waypoints/" + route.getIdInternal();
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println("[Bus Stop API] Get Waypoints error: " + e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                JsonArray waypointsJson = new JsonParser().parse(response.body().string()).getAsJsonArray();
+
+                System.out.println("[Bus Stop API] " + route.getIdInternal() + " Bus Waypoints: " + waypointsJson.toString());
+
+                List<LatLng> waypoints = new ArrayList<>();
+
+                for (JsonElement waypointJsonE : waypointsJson.getAsJsonArray()) {
+                    JsonObject waypointJson = waypointJsonE.getAsJsonObject();
+                    double lat = waypointJson.get("lat").getAsDouble();
+                    double lon = waypointJson.get("lon").getAsDouble();
+                    LatLng waypoint = new LatLng(lat,lon);
+                    waypoints.add(waypoint);
+                }
+
+                for (BusStopAPIReceivedRouteWaypointsListener listener : routeWaypointsListeners) {
+                    listener.onBusStopAPIRecievedRouteWaypoints(route, waypoints);
                 }
             }
         });
