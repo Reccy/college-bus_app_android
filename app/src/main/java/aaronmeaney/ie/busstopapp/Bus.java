@@ -14,7 +14,6 @@ public class Bus {
     private BusRoute currentRoute;
     private BusStop currentStop;
     private List<BusStop> hailedStops;
-    private List<LatLng> waypoints;
     private List<TimeSlot> timeslots;
     private int currentCapacity;
     private int maximumCapacity;
@@ -22,7 +21,7 @@ public class Bus {
 
     public Bus(String name, double latitude, double longitude, String registrationNumber,
                String model, String companyName, BusRoute currentRoute, BusStop currentStop,
-               List<BusStop> hailedStops, List<LatLng> waypoints, List<TimeSlot> timeslots,
+               List<BusStop> hailedStops, List<TimeSlot> timeslots,
                int currentCapacity, int maximumCapacity, double timestamp) {
         this.name = name;
         this.latitude = latitude;
@@ -33,7 +32,6 @@ public class Bus {
         this.currentRoute = currentRoute;
         this.currentStop = currentStop;
         this.hailedStops = hailedStops;
-        this.waypoints = waypoints;
         this.timeslots = timeslots;
         this.currentCapacity = currentCapacity;
         this.maximumCapacity = maximumCapacity;
@@ -90,14 +88,6 @@ public class Bus {
 
     public void setHailedStops(List<BusStop> hailedStops) {
         this.hailedStops = hailedStops;
-    }
-
-    public List<LatLng> getWaypoints() {
-        return waypoints;
-    }
-
-    public void setWaypoints(List<LatLng> waypoints) {
-        this.waypoints = waypoints;
     }
 
     public List<TimeSlot> getTimeslots() {

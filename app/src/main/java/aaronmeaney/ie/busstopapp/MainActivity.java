@@ -397,7 +397,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final String currentStopIdInternal = message.get("current_stop_id_internal").getAsString();
         final JsonArray hailedBusStopsJson = message.get("hailed_stops").getAsJsonArray();
         final JsonObject timeslotsJson = message.get("timeslots").getAsJsonObject();
-        final JsonArray waypointsJson = message.get("waypoints").getAsJsonArray();
         final int currentCapacity = message.get("current_capacity").getAsInt();
         final int maximumCapacity = message.get("maximum_capacity").getAsInt();
         final double sentAt = message.get("sent_at").getAsDouble();
@@ -450,17 +449,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                    }
                 }
 
-                List<LatLng> waypoints = new ArrayList<>();
-                for (JsonElement waypoint : waypointsJson) {
-                    LatLng newWaypoint = new LatLng(
-                            waypoint.getAsJsonObject().get("latitude").getAsDouble(),
-                            waypoint.getAsJsonObject().get("longitude").getAsDouble()
-                    );
-                    waypoints.add(newWaypoint);
-                }
-
                 Bus bus = new Bus(busName, latitude, longitude, registrationNumber, model, company,
-                        busRoute, busStop, hailedBusStops, waypoints, timeslots, currentCapacity,
+                        busRoute, busStop, hailedBusStops, timeslots, currentCapacity,
                         maximumCapacity, sentAt);
                 LatLng position = new LatLng(bus.getLatitude(), bus.getLongitude());
 
@@ -511,7 +501,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Draw Polyline
-                busRouteLine.setPoints(waypoints);
+                // TODO: Implement polyline
+                //busRouteLine.setPoints(waypoints);
             }
         });
     }
