@@ -204,36 +204,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busStopAPI.addOnInitializedListener(new BusStopAPI.BusStopAPIInitializedListener() {
             @Override
             public void onBusStopAPIInitialized() {
+                busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
+                    @Override
+                    public void onBusStopAPIMessageReceived(PNMessageResult messageResult) {
+                        handleReceivedMessage(messageResult.getMessage().getAsJsonObject());
+                    }
+                });
+
+                busStopAPI.addOnReceivedBusStops(new BusStopAPI.BusStopAPIReceivedBusStopsListener() {
+                    @Override
+                    public void onBusStopAPIReceivedBusStops(JsonArray busStops) {
+                        handleBusStopData(busStops);
+                        busStopAPI.getBusRoutes();
+                    }
+                });
+
+                busStopAPI.addOnReceivedBusRoutes(new BusStopAPI.BusStopAPIReceivedBusRoutesListener() {
+                    @Override
+                    public void onBusStopAPIReceivedBusRoutes(JsonArray busRoutes) {
+                        handleBusRouteData(busRoutes);
+                    }
+                });
+
+                busStopAPI.addOnReceivedRouteWaypoints(new BusStopAPI.BusStopAPIReceivedRouteWaypointsListener() {
+                    @Override
+                    public void onBusStopAPIRecievedRouteWaypoints(BusRoute route, List<LatLng> routeWaypoints) {
+                        handleRouteWaypointsData(route, routeWaypoints);
+                    }
+                });
+
                 busStopAPI.getBusStops();
-            }
-        });
-
-        busStopAPI.addOnMessageReceivedListener(new BusStopAPI.BusStopAPIMessageReceivedListener() {
-            @Override
-            public void onBusStopAPIMessageReceived(PNMessageResult messageResult) {
-                handleReceivedMessage(messageResult.getMessage().getAsJsonObject());
-            }
-        });
-
-        busStopAPI.addOnReceivedBusStops(new BusStopAPI.BusStopAPIReceivedBusStopsListener() {
-            @Override
-            public void onBusStopAPIReceivedBusStops(JsonArray busStops) {
-                handleBusStopData(busStops);
-                busStopAPI.getBusRoutes();
-            }
-        });
-
-        busStopAPI.addOnReceivedBusRoutes(new BusStopAPI.BusStopAPIReceivedBusRoutesListener() {
-            @Override
-            public void onBusStopAPIReceivedBusRoutes(JsonArray busRoutes) {
-                handleBusRouteData(busRoutes);
-            }
-        });
-
-        busStopAPI.addOnReceivedRouteWaypoints(new BusStopAPI.BusStopAPIReceivedRouteWaypointsListener() {
-            @Override
-            public void onBusStopAPIRecievedRouteWaypoints(BusRoute route, List<LatLng> routeWaypoints) {
-                handleRouteWaypointsData(route, routeWaypoints);
             }
         });
 
