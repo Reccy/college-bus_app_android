@@ -35,24 +35,39 @@
                 android:text="Swords Express - 500X"/>
 
             <Button
-                android:id="@+id/bottom_sheet_close_btn"
+                android:id="@+id/bottom_sheet_location_btn"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_centerVertical="true"
                 android:layout_alignParentEnd="true"
                 android:textSize="23dp"
-                android:background="@mipmap/ic_close"/>
-
+                android:background="@mipmap/ic_location"/>
         </RelativeLayout>
 
-        <TextView
-            android:id="@+id/bottom_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="5dp"
-            android:textSize="20dp"
-            android:text="In Service"/>
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
+            <TextView
+                android:id="@+id/bottom_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginBottom="5dp"
+                android:textSize="20dp"
+                android:text="In Service"/>
+
+            <Button
+                android:id="@+id/bottom_sheet_more_info"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/bottom_subtitle"
+                android:layout_marginLeft="10dp"
+                android:textSize="23dp"
+                android:background="@mipmap/ic_info"/>
+
+        </RelativeLayout>
     </LinearLayout>
 
     <!-- List Section -->

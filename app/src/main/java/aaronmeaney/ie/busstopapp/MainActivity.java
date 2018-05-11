@@ -47,8 +47,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @BindView(R.id.bottom_sheet)
     public LinearLayout bottomSheetLayout;
 
-    @BindView(R.id.bottom_sheet_close_btn)
-    public Button bottomSheetCloseBtn;
+    @BindView(R.id.bottom_sheet_location_btn)
+    public Button bottomSheetLocationBtn;
+
+    @BindView(R.id.bottom_sheet_more_info)
+    public Button bottomSheetMoreInfoBtn;
 
     @BindView(R.id.shadow)
     public View bottomSheetShadow;
@@ -101,13 +104,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        bottomSheetCloseBtn.setOnClickListener(new View.OnClickListener() {
+        bottomSheetLocationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                bottomSheet.setHideable(true);
-                bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetShadow.setVisibility(View.GONE);
-                updateSelectedBus(null);
+                if (selectedBus != null)
+                {
+                    Marker marker = busMarkers.get(selectedBus);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(Math.max(15, mMap.getCameraPosition().zoom)));
+                }
+            }
+        });
+
+        bottomSheetMoreInfoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (selectedBus != null)
+                    System.out.println("[Info Button] => " + selectedBus);
             }
         });
 
@@ -253,7 +266,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(Math.max(15, mMap.getCameraPosition().zoom)));
 
         final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
         int pixels = (int) (80 * scale + 0.5f);
@@ -325,7 +338,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private void updateSelectedBus(Bus bus) {
         selectedBus = bus;
         timeSlotAdapter = null;
-        busRouteLine.setPoints(new ArrayList<LatLng>());
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                busRouteLine.setPoints(new ArrayList<LatLng>());
+            }
+        });
     }
 
     /**
@@ -514,9 +532,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Set marker
+                Marker marker = null;
                 if (busMarkers.containsKey(bus)) {
                     System.out.println("Updating bus " + bus.getName() + " position.");
-                    busMarkers.get(bus).setPosition(position);
+                    marker = busMarkers.get(bus);
+                    marker.setPosition(position);
                 } else {
                     System.out.println("Creating new bus marker for " + bus.getName());
                     Bitmap bitmap = ((BitmapDrawable)getResources().getDrawable(R.drawable.bus_marker)).getBitmap();
@@ -528,7 +548,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             .zIndex(2f)
                             .icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
 
-                    busMarkers.forcePut(bus, newMarker);
+                    marker = busMarkers.forcePut(bus, newMarker);
                 }
             }
         });
