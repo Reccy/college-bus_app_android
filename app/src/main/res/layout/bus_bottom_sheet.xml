@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:textStyle="bold"
                 android:textSize="25dp"
-                android:text="Swords Express - 500X"/>
+                android:text="default bus name"/>
 
             <Button
                 android:id="@+id/bottom_sheet_location_btn"
@@ -55,7 +55,7 @@
                 android:layout_centerVertical="true"
                 android:layout_marginBottom="5dp"
                 android:textSize="20dp"
-                android:text="In Service"/>
+                android:text="default bus info"/>
 
             <Button
                 android:id="@+id/bottom_sheet_more_info"
@@ -73,10 +73,111 @@
     <!-- List Section -->
     <View style="@style/Divider" />
 
+    <!-- Bus List -->
     <android.support.v7.widget.RecyclerView
         android:id="@+id/bottom_sheet_list"
         android:scrollbars="vertical"
         android:layout_width="match_parent"
         android:layout_height="200dp" />
+
+    <!-- Bus Info Panel -->
+    <LinearLayout
+        android:id="@+id/bottom_sheet_info"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp">
+            <TextView
+                android:id="@+id/bus_registration_number_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Registration Number: "
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/bus_registration_number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="default"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp">
+            <TextView
+                android:id="@+id/bus_model_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Model: "
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/bus_model"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="default"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp">
+            <TextView
+                android:id="@+id/bus_company_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Company: "
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/bus_company"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="default"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp">
+            <TextView
+                android:id="@+id/bus_latitude_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Latitude: "
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/bus_latitude"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="default"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp">
+            <TextView
+                android:id="@+id/bus_longitude_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Longitude: "
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/bus_longitude"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="default"/>
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>

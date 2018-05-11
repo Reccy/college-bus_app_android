@@ -59,11 +59,29 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @BindView(R.id.bottom_sheet_list)
     public RecyclerView layoutBottomSheetList;
 
+    @BindView(R.id.bottom_sheet_info)
+    public LinearLayout layoutBottomSheetInfo;
+
     @BindView(R.id.bottom_title)
     public TextView bottomTitle;
 
     @BindView(R.id.bottom_subtitle)
     public TextView bottomSubtitle;
+
+    @BindView(R.id.bus_registration_number)
+    public TextView busRegistrationNumberText;
+
+    @BindView(R.id.bus_model)
+    public TextView busModelText;
+
+    @BindView(R.id.bus_company)
+    public TextView busCompanyText;
+
+    @BindView(R.id.bus_latitude)
+    public TextView busLatitude;
+
+    @BindView(R.id.bus_longitude)
+    public TextView busLongitude;
 
     private BottomSheetBehavior bottomSheet;
 
@@ -91,6 +109,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         // Setup bottom sheet
         bottomSheet = BottomSheetBehavior.from(bottomSheetLayout);
 
+        // Disables drag on bottom sheet
         bottomSheet.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheetView, int newState) {
@@ -103,6 +122,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
         });
 
+        // Hides and shows the bottom sheet on click
         bottomTitle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -119,6 +139,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // Centers the camera on the highlighted marker on click
         bottomSheetLocationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -134,11 +155,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // Changes the info panel on click
         bottomSheetMoreInfoBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (selectedBus != null)
-                    System.out.println("[Info Button] => " + selectedBus);
+                {
+                    if (layoutBottomSheetInfo.getVisibility() == View.GONE) {
+                        layoutBottomSheetInfo.setVisibility(View.VISIBLE);
+                        layoutBottomSheetList.setVisibility(View.GONE);
+                    } else {
+                        layoutBottomSheetInfo.setVisibility(View.GONE);
+                        layoutBottomSheetList.setVisibility(View.VISIBLE);
+                    }
+                }
             }
         });
 
@@ -291,10 +321,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         updateSelectedBusStop(null);
 
         bottomTitle.setText(bus.getCompanyName() + " - " + bus.getCurrentRoute().getId());
+        bottomSubtitle.setText(selectedBus.getCurrentCapacity() + " / " + selectedBus.getMaximumCapacity() + " seats");
         bottomSubtitle.setVisibility(View.VISIBLE);
         bottomSheetMoreInfoBtn.setVisibility(View.VISIBLE);
 
-        updateBusList(bus);
+        updateBusInfoPanel(bus);
     }
 
     private void handleBusStopMarkerSelected(BusStop busStop, Marker marker) {
@@ -321,7 +352,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Updates the recycler view list on the bottom sheet.
      */
-    private void updateBusList(Bus bus) {
+    private void updateBusInfoPanel(Bus bus) {
         if (bus != selectedBus)
             return;
 
@@ -329,6 +360,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (bus.getCurrentRoute().getWaypoints() != null)
             busRouteLine.setPoints(bus.getCurrentRoute().getWaypoints());
 
+        // Update List
         int currentStopIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
         ArrayList<TimeSlot> displayedList = new ArrayList<>(bus.getTimeslots().subList(currentStopIndex, bus.getTimeslots().size()));
 
@@ -340,6 +372,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             System.out.println(bus.getCurrentRoute());
             System.out.println(timeSlotAdapter.toString());
         }
+
+        // Update Info Panel
+        busRegistrationNumberText.setText(bus.getRegistrationNumber());
+        busModelText.setText(bus.getModel());
+        busCompanyText.setText(bus.getCompanyName());
+        busLatitude.setText(Double.toString(bus.getLatitude()));
+        busLongitude.setText(Double.toString(bus.getLongitude()));
     }
 
     /**
@@ -548,7 +587,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Update list
                 if (selectedBus != null) {
                     bottomSubtitle.setText(selectedBus.getCurrentCapacity() + " / " + selectedBus.getMaximumCapacity() + " seats");
-                    updateBusList(selectedBus);
+                    updateBusInfoPanel(selectedBus);
                 }
 
                 if (timeSlotAdapter != null) {
