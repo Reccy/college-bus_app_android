@@ -107,6 +107,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 bottomSheet.setHideable(true);
                 bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
                 bottomSheetShadow.setVisibility(View.GONE);
+                updateSelectedBus(null);
             }
         });
 
@@ -185,7 +186,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         // Setup route polyline
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
-        polylineOptions.width(5);
+        polylineOptions.width(10);
         busRouteLine = mMap.addPolyline(polylineOptions);
 
         // Setup recycler view
@@ -301,6 +302,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (bus != selectedBus)
             return;
 
+        // Draw Polyline
+        if (bus.getCurrentRoute().getWaypoints() != null)
+            busRouteLine.setPoints(bus.getCurrentRoute().getWaypoints());
+
         int currentStopIndex = bus.getCurrentRoute().getBusStops().indexOf(bus.getCurrentStop());
         ArrayList<TimeSlot> displayedList = new ArrayList<>(bus.getTimeslots().subList(currentStopIndex, bus.getTimeslots().size()));
 
@@ -320,6 +325,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private void updateSelectedBus(Bus bus) {
         selectedBus = bus;
         timeSlotAdapter = null;
+        busRouteLine.setPoints(new ArrayList<LatLng>());
     }
 
     /**
@@ -360,18 +366,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Handles the bus route data received from the API
      */
-    private void handleBusRouteData(final JsonArray busRoutesJson) {
+    private void handleBusRouteData(final JsonArray busRoutesJson)
+    {
         // runOnUiThread to prevent ConcurrencyException while accessing busStopMarkers
-        runOnUiThread(new Runnable() {
+        runOnUiThread(new Runnable()
+        {
             @Override
-            public void run() {
-                for (JsonElement busRouteJson : busRoutesJson) {
+            public void run()
+            {
+                for (JsonElement busRouteJson : busRoutesJson)
+                {
                     String id = busRouteJson.getAsJsonObject().get("id").getAsString();
                     String internalId = busRouteJson.getAsJsonObject().get("internal_id").getAsString();
 
                     ArrayList<BusStop> tempBusStops = new ArrayList<>();
 
-                    for (JsonElement jsonIdInternal : busRouteJson.getAsJsonObject().get("bus_stops").getAsJsonArray()) {
+                    for (JsonElement jsonIdInternal : busRouteJson.getAsJsonObject().get("bus_stops").getAsJsonArray()){
                         for (BusStop busStop : busStopMarkers.inverse().values()) {
                             if (busStop.getInternalId().equals(jsonIdInternal.getAsString())) {
                                 System.out.println("Adding stop " + busStop.getInternalId() + " to route " + internalId);
@@ -520,10 +530,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     busMarkers.forcePut(bus, newMarker);
                 }
-
-                // Draw Polyline
-                if (bus.getCurrentRoute().getWaypoints() != null)
-                    busRouteLine.setPoints(bus.getCurrentRoute().getWaypoints());
             }
         });
     }
@@ -557,6 +563,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     bottomSheet.setHideable(true);
                     bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
                     bottomSheetShadow.setVisibility(View.GONE);
+                    busRouteLine.setPoints(new ArrayList<LatLng>());
                 }
             });
         }
