@@ -3,6 +3,7 @@ package aaronmeaney.ie.busstopapp;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -89,6 +90,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     {
         // Setup bottom sheet
         bottomSheet = BottomSheetBehavior.from(bottomSheetLayout);
+
+        bottomSheet.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheetView, int newState) {
+                if (newState == BottomSheetBehavior.STATE_DRAGGING) {
+                    bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
+        });
 
         bottomTitle.setOnClickListener(new View.OnClickListener() {
             @Override
