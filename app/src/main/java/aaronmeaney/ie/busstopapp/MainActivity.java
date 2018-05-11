@@ -3,7 +3,6 @@ package aaronmeaney.ie.busstopapp;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
-import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -94,6 +93,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bottomTitle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (selectedBus == null)
+                    return;
+
                 if (bottomSheet.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
                     bottomSheet.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
@@ -107,9 +109,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bottomSheetLocationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (selectedBus != null)
-                {
+                if (selectedBus != null) {
                     Marker marker = busMarkers.get(selectedBus);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(Math.max(15, mMap.getCameraPosition().zoom)));
+                } else if (selectedBusStop != null) {
+                    Marker marker = busStopMarkers.get(selectedBusStop);
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude)));
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(Math.max(15, mMap.getCameraPosition().zoom)));
                 }
@@ -122,27 +127,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 if (selectedBus != null)
                     System.out.println("[Info Button] => " + selectedBus);
             }
-        });
-
-        bottomSheet.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                switch (newState) {
-                    case BottomSheetBehavior.STATE_HIDDEN:
-                        break;
-                    case BottomSheetBehavior.STATE_EXPANDED:
-                        break;
-                    case BottomSheetBehavior.STATE_COLLAPSED:
-                        break;
-                    case BottomSheetBehavior.STATE_DRAGGING:
-                        break;
-                    case BottomSheetBehavior.STATE_SETTLING:
-                        break;
-                }
-            }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
         });
 
         bottomSheet.setState(BottomSheetBehavior.STATE_HIDDEN);
@@ -182,6 +166,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private BiMap<Bus, Marker> busMarkers;
     private ArrayList<BusRoute> busRoutes;
     private Bus selectedBus;
+    private BusStop selectedBusStop;
 
     /**
      * Manipulates the map once available.
@@ -271,8 +256,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         final float scale = getApplicationContext().getResources().getDisplayMetrics().density;
         int pixels = (int) (80 * scale + 0.5f);
         bottomSheet.setPeekHeight(pixels);
-        bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
         bottomSheet.setHideable(false);
+
+        if (busMarkers.containsValue(marker)) {
+            if (bottomSheet.getState() != BottomSheetBehavior.STATE_EXPANDED)
+                bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+        else {
+            bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+
         bottomSheetShadow.setVisibility(View.VISIBLE);
         return true;
     }
@@ -282,18 +275,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
 
         updateSelectedBus(bus);
+        updateSelectedBusStop(null);
 
         bottomTitle.setText(bus.getCompanyName() + " - " + bus.getCurrentRoute().getId());
         bottomSubtitle.setVisibility(View.VISIBLE);
+        bottomSheetMoreInfoBtn.setVisibility(View.VISIBLE);
 
         updateBusList(bus);
     }
 
     private void handleBusStopMarkerSelected(BusStop busStop, Marker marker) {
         updateSelectedBus(null);
+        updateSelectedBusStop(busStop);
 
         bottomTitle.setText(busStop.getId());
         bottomSubtitle.setVisibility(View.INVISIBLE);
+        bottomSheetMoreInfoBtn.setVisibility(View.GONE);
     }
 
     @Override
@@ -337,6 +334,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private void updateSelectedBus(Bus bus) {
         selectedBus = bus;
+        timeSlotAdapter = null;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                busRouteLine.setPoints(new ArrayList<LatLng>());
+            }
+        });
+    }
+
+    /**
+     * Updates the selected bus stop and clears any data related to it;
+     */
+    private void updateSelectedBusStop(BusStop stop) {
+        selectedBusStop = stop;
         timeSlotAdapter = null;
         runOnUiThread(new Runnable() {
             @Override
