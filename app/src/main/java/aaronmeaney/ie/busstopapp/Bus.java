@@ -1,7 +1,5 @@
 package aaronmeaney.ie.busstopapp;
 
-import com.google.android.gms.maps.model.LatLng;
-
 import java.util.List;
 
 public class Bus {
